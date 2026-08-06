@@ -1,7 +1,7 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.akacianl/basicdeploy-mcp",
-  "description": "The persistent runtime your agent deploys to — one call gives a container with a PostgreSQL database, S3-compatible storage, and a public URL. Create, deploy, exec, and manage apps.",
+  "description": "The runtime your agent deploys to — DB, storage, and a public URL in one MCP call.",
   "repository": {
     "url": "https://github.com/AkaciaNL/basicdeploy-mcp",
     "source": "github"
