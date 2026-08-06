@@ -40,6 +40,15 @@ claude mcp add basicdeploy \
   -- npx -y basicdeploy-mcp@latest
 ```
 
+Claude Code plugin (this repo doubles as a plugin marketplace):
+
+```bash
+/plugin marketplace add AkaciaNL/basicdeploy-mcp
+/plugin install basicdeploy-mcp@basicdeploy
+```
+
+Then set `BASICDEPLOY_API_KEY` in your environment (the plugin reads it via `${BASICDEPLOY_API_KEY}`).
+
 ### Environment variables
 
 | Variable | Required | Description |

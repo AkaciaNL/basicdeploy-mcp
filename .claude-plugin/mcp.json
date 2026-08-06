@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "basicdeploy": {
+      "command": "npx",
+      "args": ["-y", "basicdeploy-mcp@latest"],
+      "env": {
+        "BASICDEPLOY_API_KEY": "${BASICDEPLOY_API_KEY}",
+        "BASICDEPLOY_URL": "${BASICDEPLOY_URL:-https://basicdeploy.com}"
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "basicdeploy",
+  "owner": {
+    "name": "Akacia",
+    "email": "support@basicdeploy.com",
+    "url": "https://basicdeploy.com"
+  },
+  "plugins": [
+    {
+      "name": "basicdeploy-mcp",
+      "source": "./",
+      "description": "The persistent runtime your agent deploys to — create and manage BasicDeploy containers (Postgres, S3 storage, env, a public HTTPS URL) in one MCP call.",
+      "author": {
+        "name": "Akacia",
+        "url": "https://basicdeploy.com"
+      }
+    }
+  ]
+}

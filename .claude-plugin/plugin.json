@@ -1,0 +1,14 @@
+{
+  "name": "basicdeploy-mcp",
+  "displayName": "BasicDeploy",
+  "description": "Deploy and manage BasicDeploy containers from your agent — Postgres, S3-compatible storage, env vars, and a public HTTPS URL, all in one MCP call.",
+  "author": {
+    "name": "Akacia",
+    "url": "https://basicdeploy.com"
+  },
+  "homepage": "https://basicdeploy.com/docs",
+  "repository": "https://github.com/AkaciaNL/basicdeploy-mcp",
+  "license": "MIT",
+  "keywords": ["mcp", "deploy", "hosting", "containers", "postgres", "s3", "agent"],
+  "mcpServers": "./.claude-plugin/mcp.json"
+}
