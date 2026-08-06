@@ -19,7 +19,7 @@
       "environmentVariables": [
         {
           "name": "BASICDEPLOY_API_KEY",
-          "description": "Your BasicDeploy API key (bd_...). Create one at https://basicdeploy.com/api-keys — the server refuses to start without it.",
+          "description": "Your BasicDeploy API key (bd_...). Create one at https://basicdeploy.com/api-keys — required to call any tool (the server still starts without it so clients can introspect the tool list).",
           "isRequired": true,
           "isSecret": true,
           "format": "string"
