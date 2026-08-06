@@ -1,0 +1,35 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.json",
+  "name": "io.github.akacianl/basicdeploy-mcp",
+  "description": "The persistent runtime your agent deploys to — one call gives a container with a PostgreSQL database, S3-compatible storage, and a public URL. Create, deploy, exec, and manage apps.",
+  "repository": {
+    "url": "https://github.com/AkaciaNL/basicdeploy-mcp",
+    "source": "github"
+  },
+  "version": "1.0.3",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "basicdeploy-mcp",
+      "version": "1.0.3",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "BASICDEPLOY_API_KEY",
+          "description": "Your BasicDeploy API key (bd_...). Create one at https://basicdeploy.com/api-keys — the server refuses to start without it.",
+          "isRequired": true,
+          "isSecret": true
+        },
+        {
+          "name": "BASICDEPLOY_URL",
+          "description": "BasicDeploy API base URL.",
+          "isRequired": false,
+          "default": "https://basicdeploy.com"
+        }
+      ]
+    }
+  ]
+}
