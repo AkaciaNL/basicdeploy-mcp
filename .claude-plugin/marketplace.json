@@ -1,5 +1,6 @@
 {
   "name": "basicdeploy",
+  "description": "BasicDeploy's official plugin — the persistent runtime your agent deploys to (Postgres, S3 storage, env, a public URL, one MCP call).",
   "owner": {
     "name": "Akacia",
     "email": "support@basicdeploy.com",
