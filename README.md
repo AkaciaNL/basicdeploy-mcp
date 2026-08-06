@@ -49,6 +49,24 @@ Claude Code plugin (this repo doubles as a plugin marketplace):
 
 Then set `BASICDEPLOY_API_KEY` in your environment (the plugin reads it via `${BASICDEPLOY_API_KEY}`).
 
+OpenAI Codex CLI:
+
+```bash
+codex mcp add basicdeploy \
+  --env BASICDEPLOY_API_KEY=bd_your_api_key \
+  --env BASICDEPLOY_URL=https://basicdeploy.com \
+  -- npx -y basicdeploy-mcp@latest
+```
+
+or add it directly to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.basicdeploy]
+command = "npx"
+args = ["-y", "basicdeploy-mcp@latest"]
+env = { BASICDEPLOY_API_KEY = "bd_your_api_key", BASICDEPLOY_URL = "https://basicdeploy.com" }
+```
+
 ### Environment variables
 
 | Variable | Required | Description |
