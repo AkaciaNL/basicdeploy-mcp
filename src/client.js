@@ -4,14 +4,9 @@
 const BASE_URL = (process.env.BASICDEPLOY_URL || "https://basicdeploy.com").replace(/\/+$/, "");
 const API_KEY = process.env.BASICDEPLOY_API_KEY;
 
-if (!API_KEY) {
-  console.error(
-    "Error: BASICDEPLOY_API_KEY environment variable is not set.\n" +
-      "Create an API key in the BasicDeploy dashboard (API Keys -> Create) and set:\n" +
-      '  BASICDEPLOY_API_KEY="bd_..."'
-  );
-  process.exit(1);
-}
+// The API key is required to CALL any tool, but NOT to start the server or list its
+// tools — so MCP clients (and registries like Glama) can introspect the server
+// without credentials. The check happens per request, below.
 
 /**
  * Perform a request against the BasicDeploy API and return the parsed JSON body
@@ -19,6 +14,12 @@ if (!API_KEY) {
  * including the HTTP status and the server's `message` field, on failure.
  */
 async function request(path, { method = "GET", body, headers = {} } = {}) {
+  if (!API_KEY) {
+    throw new Error(
+      "BASICDEPLOY_API_KEY is not set. Create an API key at https://basicdeploy.com/api-keys " +
+        'and set BASICDEPLOY_API_KEY="bd_..." in the server env.'
+    );
+  }
   const url = `${BASE_URL}${path}`;
   const init = {
     method,

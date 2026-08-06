@@ -44,7 +44,7 @@ claude mcp add basicdeploy \
 
 | Variable | Required | Description |
 |---|---|---|
-| `BASICDEPLOY_API_KEY` | Yes | Your API key (`bd_…`). The server refuses to start without it. |
+| `BASICDEPLOY_API_KEY` | Yes | Your API key (`bd_…`). Required to call any tool (the server still starts and lists its tools without it, so clients can introspect it). |
 | `BASICDEPLOY_URL` | No | API base URL. Defaults to `https://basicdeploy.com`. |
 
 ## Tools
