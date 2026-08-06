@@ -1,3 +1,5 @@
+<p align="center"><img src="./logo.svg" width="96" alt="BasicDeploy"></p>
+
 # BasicDeploy MCP Server
 
 **The persistent runtime your agent deploys to — a database, object storage, and a public URL, one MCP call.**

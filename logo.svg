@@ -1,0 +1,13 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bd" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#4F46E5"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="228" fill="url(#bd)"/>
+  <!-- deploy arrow: an app going up, live -->
+  <path d="M512 236 L676 466 L565 466 L565 690 L459 690 L459 466 L348 466 Z" fill="#fff"/>
+  <!-- the runtime it deploys onto -->
+  <rect x="316" y="726" width="392" height="74" rx="37" fill="#fff"/>
+</svg>
