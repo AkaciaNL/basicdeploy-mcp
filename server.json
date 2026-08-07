@@ -1,25 +1,25 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.AkaciaNL/basicdeploy-mcp",
-  "description": "The runtime your agent deploys to \u2014 DB, storage, and a public URL in one MCP call.",
+  "description": "The runtime your agent deploys to — DB, storage, and a public URL in one MCP call.",
   "repository": {
     "url": "https://github.com/AkaciaNL/basicdeploy-mcp",
     "source": "github"
   },
-  "version": "1.0.6",
+  "version": "1.0.7",
   "packages": [
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "basicdeploy-mcp",
-      "version": "1.0.6",
+      "version": "1.0.7",
       "transport": {
         "type": "stdio"
       },
       "environmentVariables": [
         {
           "name": "BASICDEPLOY_API_KEY",
-          "description": "Your BasicDeploy API key (bd_...). Create one at https://basicdeploy.com/api-keys \u2014 required to call any tool (the server still starts without it so clients can introspect the tool list).",
+          "description": "Your BasicDeploy API key (bd_...). Create one at https://basicdeploy.com/api-keys — required to call any tool (the server still starts without it so clients can introspect the tool list).",
           "isRequired": true,
           "isSecret": true,
           "format": "string"

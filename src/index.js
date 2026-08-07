@@ -74,6 +74,35 @@ const TOOLS = [
     },
   },
   {
+    name: "wake_container",
+    description:
+      "Wake a slept container so it serves traffic again (start it). A no-op if it is already " +
+      "running. Note: any web request to the container's public URL also wakes it automatically. " +
+      "Returns the updated container.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        containerId: { type: "string", description: "The container's UUID." },
+      },
+      required: ["containerId"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "sleep_container",
+    description:
+      "Sleep a running container: stop it to free memory while keeping its volume, database, and " +
+      "public URL, so it wakes again on the next request. Returns the updated container.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        containerId: { type: "string", description: "The container's UUID." },
+      },
+      required: ["containerId"],
+      additionalProperties: false,
+    },
+  },
+  {
     name: "get_account",
     description:
       "Show the account's plan and capabilities: plan tier, container limit (plan base + add-ons), " +
@@ -232,6 +261,16 @@ async function handleTool(name, args = {}) {
       return text(`always-on ${args.enabled ? "enabled" : "disabled"} for ${c.subdomain}.\n${containerSummary(c)}`);
     }
 
+    case "wake_container": {
+      const c = await api.wakeContainer(args.containerId);
+      return text(`Woke ${c.subdomain} (status: ${c.status}).\n${containerSummary(c)}`);
+    }
+
+    case "sleep_container": {
+      const c = await api.sleepContainer(args.containerId);
+      return text(`Slept ${c.subdomain} (status: ${c.status}).\n${containerSummary(c)}`);
+    }
+
     case "get_account": {
       const me = await api.getAccount();
       const p = me.plan || {};
@@ -324,7 +363,7 @@ async function handleTool(name, args = {}) {
 }
 
 const server = new Server(
-  { name: "basicdeploy-mcp", version: "1.0.2" },
+  { name: "basicdeploy-mcp", version: "1.0.7" },
   { capabilities: { tools: {} } }
 );
 

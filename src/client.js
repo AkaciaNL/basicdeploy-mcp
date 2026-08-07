@@ -97,6 +97,24 @@ export function setAlwaysOn(containerId, enabled) {
 }
 
 /**
+ * Wake a slept container (POST /api/containers/{id}/wake): start it so it serves
+ * traffic again. A no-op if already running. Returns the updated container.
+ * (Any web request to its public URL also wakes it automatically.)
+ */
+export function wakeContainer(containerId) {
+  return request(`/api/containers/${encodeURIComponent(containerId)}/wake`, { method: "POST" });
+}
+
+/**
+ * Sleep a running container (POST /api/containers/{id}/sleep): stop it to free RAM
+ * while keeping its volume and routing, so it wakes again on the next request.
+ * Returns the updated container.
+ */
+export function sleepContainer(containerId) {
+  return request(`/api/containers/${encodeURIComponent(containerId)}/sleep`, { method: "POST" });
+}
+
+/**
  * The account's plan, limits and add-ons (GET /api/auth/me): plan tier, container
  * limit (base + add-ons), selectable memory sizes, storage limit, and how many
  * always-on add-ons are held.

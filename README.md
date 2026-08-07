@@ -85,6 +85,8 @@ env = { BASICDEPLOY_API_KEY = "bd_your_api_key", BASICDEPLOY_URL = "https://basi
 | `exec_command` | `containerId`, `command` | Run a shell command inside the container; returns output + exit code. |
 | `get_logs` | `containerId`, `tail?` (default 200) | Fetch recent container logs. |
 | `set_always_on` | `containerId`, `enabled` | Turn a container's 24/7 always‑on flag on/off. |
+| `wake_container` | `containerId` | Wake a slept container so it serves traffic again. |
+| `sleep_container` | `containerId` | Sleep a running container to free memory (wakes on next request). |
 | `get_account` | — | Your plan, container limit (plan + add‑ons), selectable memory sizes, storage limit, and add‑ons. |
 | `share_container` | `containerId`, `email`, `expiresInHours?` | Share a container with another user by email (they get a sign‑in link). Omit `expiresInHours` for an unlimited share. |
 | `delete_container` | `containerId` | **Permanent** — destroys the container, its database, and all files. |

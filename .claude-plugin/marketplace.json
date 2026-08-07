@@ -1,6 +1,6 @@
 {
   "name": "basicdeploy",
-  "description": "BasicDeploy's official plugin \u2014 the persistent runtime your agent deploys to (Postgres, S3 storage, env, a public URL, one MCP call).",
+  "description": "BasicDeploy's official plugin — the persistent runtime your agent deploys to (Postgres, S3 storage, env, a public URL, one MCP call).",
   "owner": {
     "name": "Akacia",
     "email": "support@basicdeploy.com",
@@ -10,8 +10,8 @@
     {
       "name": "basicdeploy-mcp",
       "source": "./",
-      "version": "1.0.6",
-      "description": "The persistent runtime your agent deploys to \u2014 create and manage BasicDeploy containers (Postgres, S3 storage, env, a public HTTPS URL) in one MCP call.",
+      "version": "1.0.7",
+      "description": "The persistent runtime your agent deploys to — create and manage BasicDeploy containers (Postgres, S3 storage, env, a public HTTPS URL) in one MCP call.",
       "author": {
         "name": "Akacia",
         "url": "https://basicdeploy.com"
