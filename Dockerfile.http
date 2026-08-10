@@ -1,0 +1,10 @@
+# Remote MCP server (Streamable HTTP) for hosting behind nginx at
+# mcp.basicdeploy.com. Distinct from the stdio Dockerfile used by npx/Glama.
+FROM node:20-alpine
+WORKDIR /app
+COPY package.json package-lock.json* ./
+RUN npm install --omit=dev --no-audit --no-fund
+COPY src ./src
+ENV PORT=8091 HOST=0.0.0.0
+EXPOSE 8091
+CMD ["node", "src/http-server.js"]

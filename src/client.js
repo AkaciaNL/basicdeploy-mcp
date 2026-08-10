@@ -1,12 +1,19 @@
 // Thin REST client for the BasicDeploy API.
 // Uses the global fetch available in Node.js >= 18.
+import { currentApiKey } from "./context.js";
 
 const BASE_URL = (process.env.BASICDEPLOY_URL || "https://basicdeploy.com").replace(/\/+$/, "");
-const API_KEY = process.env.BASICDEPLOY_API_KEY;
 
 // The API key is required to CALL any tool, but NOT to start the server or list its
 // tools — so MCP clients (and registries like Glama) can introspect the server
 // without credentials. The check happens per request, below.
+//
+// Resolution order: the per-request key (HTTP transport, from the caller's
+// Authorization header) wins; otherwise fall back to BASICDEPLOY_API_KEY from the
+// environment (stdio transport). This lets one codebase serve both.
+function resolveApiKey() {
+  return currentApiKey() || process.env.BASICDEPLOY_API_KEY;
+}
 
 /**
  * Perform a request against the BasicDeploy API and return the parsed JSON body
@@ -14,17 +21,19 @@ const API_KEY = process.env.BASICDEPLOY_API_KEY;
  * including the HTTP status and the server's `message` field, on failure.
  */
 async function request(path, { method = "GET", body, headers = {} } = {}) {
-  if (!API_KEY) {
+  const apiKey = resolveApiKey();
+  if (!apiKey) {
     throw new Error(
-      "BASICDEPLOY_API_KEY is not set. Create an API key at https://basicdeploy.com/api-keys " +
-        'and set BASICDEPLOY_API_KEY="bd_..." in the server env.'
+      "No BasicDeploy API key. Over HTTP, send it as `Authorization: Bearer bd_...`; " +
+        'over stdio, set BASICDEPLOY_API_KEY="bd_..." in the server env. ' +
+        "Create a key at https://basicdeploy.com/api-keys."
     );
   }
   const url = `${BASE_URL}${path}`;
   const init = {
     method,
     headers: {
-      Authorization: `Bearer ${API_KEY}`,
+      Authorization: `Bearer ${apiKey}`,
       ...headers,
     },
   };

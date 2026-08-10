@@ -12,6 +12,10 @@
   "bin": {
     "basicdeploy-mcp": "src/index.js"
   },
+  "scripts": {
+    "start": "node src/index.js",
+    "start:http": "node src/http-server.js"
+  },
   "files": [
     "src"
   ],
@@ -19,7 +23,8 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "latest"
+    "@modelcontextprotocol/sdk": "latest",
+    "express": "^5.1.0"
   },
   "keywords": [
     "mcp",

@@ -3,6 +3,8 @@
 // to AI coding agents (Claude Code, Cursor, ...) over stdio.
 
 import { readFile } from "node:fs/promises";
+import { realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { basename } from "node:path";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -362,22 +364,43 @@ async function handleTool(name, args = {}) {
   }
 }
 
-const server = new Server(
-  { name: "basicdeploy-mcp", version: "1.0.7" },
-  { capabilities: { tools: {} } }
-);
+// Build a fresh MCP Server wired with the tools. Shared by the stdio entrypoint
+// (below) and the HTTP entrypoint (http-server.js), so both transports expose the
+// exact same tools and behaviour.
+export function createServer() {
+  const server = new Server(
+    { name: "basicdeploy-mcp", version: "1.0.7" },
+    { capabilities: { tools: {} } }
+  );
 
-server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOLS }));
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOLS }));
 
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const { name, arguments: args } = request.params;
+  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    const { name, arguments: args } = request.params;
+    try {
+      return await handleTool(name, args);
+    } catch (err) {
+      return errorResult(err);
+    }
+  });
+
+  return server;
+}
+
+export { TOOLS };
+
+// Run over stdio ONLY when this file is executed directly (the npx/bin path).
+// When imported (by http-server.js) this side effect must not fire.
+const isMain = (() => {
   try {
-    return await handleTool(name, args);
-  } catch (err) {
-    return errorResult(err);
+    return process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url);
+  } catch {
+    return false;
   }
-});
+})();
 
-const transport = new StdioServerTransport();
-await server.connect(transport);
-console.error("BasicDeploy MCP server running on stdio");
+if (isMain) {
+  const transport = new StdioServerTransport();
+  await createServer().connect(transport);
+  console.error("BasicDeploy MCP server running on stdio");
+}
