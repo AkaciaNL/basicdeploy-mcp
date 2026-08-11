@@ -41,6 +41,8 @@ const TOOLS = [
     description:
       "Create a new empty BasicDeploy container. A PostgreSQL database and an S3 bucket are " +
       "provisioned automatically for it. Returns the container's id, subdomain, and public URL. " +
+      "Its public URL is proxied to PORT 8080 inside the container, so whatever you deploy MUST listen on " +
+      "0.0.0.0:8080 (any other port/binding returns 503). " +
       "Use deploy_app or exec_command afterwards to put an application in it. Optional memoryMb " +
       "(256/512/1024/2048) and alwaysOn require the plan/add-ons to allow them (see get_account); " +
       "larger sizes need Pro/Scale, and always-on on Free consumes a paid add-on slot.",
@@ -131,7 +133,16 @@ const TOOLS = [
     description:
       "Run a shell command inside a container (like docker exec). Returns the combined " +
       "stdout/stderr output and the exit code. Useful for inspecting files, installing packages, " +
-      "or restarting processes inside the container.",
+      "or restarting processes inside the container. " +
+      "DEPLOYING WITHOUT A TARBALL (the way to deploy over a remote/chat connector, where there is " +
+      "no shared filesystem for deploy_app): write your app's files into the container with exec_command " +
+      "(e.g. heredoc/echo or install from git), install deps, then start the server. CRITICAL: the " +
+      "container's public URL (https://<subdomain>.basicdeploy.com) is ALWAYS proxied to PORT 8080 inside " +
+      "the container, so your app MUST listen on 0.0.0.0:8080 — NOT localhost/127.0.0.1, and NOT 3000/5000/etc. " +
+      "Any other port or binding returns HTTP 503 at the public URL even though the process is running. The " +
+      "routing is wired when the container is created; you do NOT need deploy_app to 'register' it. There is " +
+      "no init/supervisor: a process you start runs only until the container sleeps or restarts and is NOT " +
+      "relaunched — for a long-running web server enable always-on (set_always_on) and start it detached.",
     inputSchema: {
       type: "object",
       properties: {
@@ -164,10 +175,14 @@ const TOOLS = [
     name: "deploy_app",
     description:
       "Deploy an application from a local tarball (.tar, .tar.gz, .tgz, or .zip) to BasicDeploy. " +
-      "The runtime (Node.js, Python, or Go) is auto-detected from the archive contents. " +
-      "If containerId is omitted, a new container (with DB + S3) is created for the app; " +
-      "if provided, the archive is deployed into that existing container. " +
-      "Returns the resulting container and its public URL.",
+      "The runtime (Node.js, Python, or Go) is auto-detected from the archive contents; the app must " +
+      "listen on 0.0.0.0:8080. If containerId is omitted, a new container (with DB + S3) is created for " +
+      "the app; if provided, the archive is deployed into that existing container. Returns the resulting " +
+      "container and its public URL. " +
+      "IMPORTANT: tarballPath is a path on the machine running THIS MCP client (i.e. the local/stdio " +
+      "install). When BasicDeploy is added as a REMOTE connector (Claude/ChatGPT/Gemini chat) there is no " +
+      "shared filesystem, so this tool cannot read your tarball — deploy with exec_command instead (write " +
+      "the files into the container and start the server on 0.0.0.0:8080).",
     inputSchema: {
       type: "object",
       properties: {
@@ -222,6 +237,27 @@ const TOOLS = [
       additionalProperties: false,
     },
   },
+  {
+    name: "get_docs",
+    description:
+      "Fetch the BasicDeploy documentation as Markdown so you can answer the user's questions and deploy " +
+      "correctly without leaving the chat. Covers: what BasicDeploy is, deploying an app (the 0.0.0.0:8080 " +
+      "rule), the runtime and preset env vars, the PostgreSQL database and S3 object storage, the REST API, " +
+      "the MCP tools, custom domains, SSH, plans/pricing, and hosted auth-as-a-service (OpenID Connect) for " +
+      "your app's own end-users. Optional 'topic' returns only the matching section(s).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        topic: {
+          type: "string",
+          description:
+            "Optional keyword to return only matching doc section(s): e.g. overview, deploy, database, " +
+            "storage, env, auth, api, mcp, domains, ssh, plans.",
+        },
+      },
+      additionalProperties: false,
+    },
+  },
 ];
 
 // MCP tool annotations (behaviour hints). Required for the OpenAI/ChatGPT Apps
@@ -235,6 +271,7 @@ const ANNOTATIONS = {
   get_account:     { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
   get_container:   { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
   get_logs:        { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+  get_docs:        { readOnlyHint: true, destructiveHint: false, openWorldHint: true },
   create_container:{ readOnlyHint: false, destructiveHint: false, openWorldHint: true },
   deploy_app:      { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
   set_always_on:   { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
@@ -281,7 +318,10 @@ async function handleTool(name, args = {}) {
       const c = await api.createContainer(memoryBytes, args.alwaysOn);
       return text(
         `Created container (database and S3 bucket provisioned automatically).\n` +
-          containerSummary(c)
+          containerSummary(c) +
+          `\n\nDeploy note: the public URL is routed to PORT 8080 inside the container — your app MUST ` +
+          `listen on 0.0.0.0:8080 or the URL returns 503. DATABASE_URL and S3_ENDPOINT/S3_ACCESS_KEY/` +
+          `S3_SECRET_KEY/S3_BUCKET are preset in the container env. Call get_docs for the full guide.`
       );
     }
 
@@ -384,6 +424,29 @@ async function handleTool(name, args = {}) {
       return text(
         `Container ${args.containerId} permanently deleted (container, database, and files destroyed).`
       );
+    }
+
+    case "get_docs": {
+      const base = (process.env.BASICDEPLOY_URL || "https://basicdeploy.com").replace(/\/+$/, "");
+      const [docsRes, llmsRes] = await Promise.all([
+        fetch(`${base}/docs/index.md`, { headers: { Accept: "text/markdown" } }).catch(() => null),
+        fetch(`${base}/llms.txt`).catch(() => null),
+      ]);
+      let docs = docsRes && docsRes.ok ? await docsRes.text() : "";
+      const llms = llmsRes && llmsRes.ok ? await llmsRes.text() : "";
+      if (!docs && !llms) {
+        throw new Error("Could not fetch BasicDeploy documentation right now. See https://basicdeploy.com/docs");
+      }
+      const topic = (args.topic || "").trim().toLowerCase();
+      if (topic && docs) {
+        const sections = docs.split(/\n(?=#{1,3} )/);
+        const hits = sections.filter((s) => s.toLowerCase().includes(topic));
+        if (hits.length) docs = hits.join("\n\n");
+      }
+      const parts = [];
+      if (docs) parts.push(docs);
+      if (llms && !topic) parts.push(`\n\n---\n# Connector / LLM quick reference (llms.txt)\n\n${llms}`);
+      return text(parts.join("\n"));
     }
 
     default:
