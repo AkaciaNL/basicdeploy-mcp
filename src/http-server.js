@@ -41,6 +41,15 @@ app.use(express.json({ limit: "4mb" }));
 // Liveness — cheap, unauthenticated.
 app.get("/healthz", (_req, res) => res.status(200).json({ status: "ok" }));
 
+// OpenAI Apps directory domain-verification challenge. Served at the MCP host root
+// (OpenAI strips the path), returning ONLY the bare token. Set OPENAI_APPS_CHALLENGE
+// to the portal-issued token at submission time; 404 until then.
+app.get("/.well-known/openai-apps-challenge", (_req, res) => {
+  const token = process.env.OPENAI_APPS_CHALLENGE;
+  if (!token) return res.status(404).end();
+  res.type("text/plain").send(token);
+});
+
 // RFC 9728 Protected Resource Metadata — served at BOTH the path-aware form (which
 // Claude probes first) and the origin form. Points MCP clients at the Keycloak
 // realm as the authorization server.

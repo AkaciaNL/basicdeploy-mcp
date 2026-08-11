@@ -224,6 +224,33 @@ const TOOLS = [
   },
 ];
 
+// MCP tool annotations (behaviour hints). Required for the OpenAI/ChatGPT Apps
+// directory submission and useful to every host:
+//   readOnlyHint    — true only when the tool changes nothing.
+//   destructiveHint — true when it can delete/overwrite/irreversibly change.
+//   openWorldHint   — true when it changes publicly-visible internet state
+//                     (e.g. a deployed app / public URL).
+const ANNOTATIONS = {
+  list_containers: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+  get_account:     { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+  get_container:   { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+  get_logs:        { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+  create_container:{ readOnlyHint: false, destructiveHint: false, openWorldHint: true },
+  deploy_app:      { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
+  set_always_on:   { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+  wake_container:  { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+  sleep_container: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+  share_container: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+  exec_command:    { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
+  delete_container:{ readOnlyHint: false, destructiveHint: true, openWorldHint: true },
+};
+
+// Tools with their annotations merged in, as the MCP tools/list response wants them.
+const TOOLS_ANNOTATED = TOOLS.map((t) => ({
+  ...t,
+  annotations: { title: t.name, ...(ANNOTATIONS[t.name] || {}) },
+}));
+
 function text(t) {
   return { content: [{ type: "text", text: t }] };
 }
@@ -373,7 +400,7 @@ export function createServer() {
     { capabilities: { tools: {} } }
   );
 
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOLS }));
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOLS_ANNOTATED }));
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
