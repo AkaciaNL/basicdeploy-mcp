@@ -1,0 +1,13 @@
+interface:
+  display_name: "Deploy on BasicDeploy"
+  short_description: "Deploy a web app on BasicDeploy and get a live HTTPS URL."
+  brand_color: "#2563eb"
+policy:
+  allow_implicit_invocation: true
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "basicdeploy"
+      description: "BasicDeploy MCP connector"
+      transport: "streamable_http"
+      url: "https://mcp.basicdeploy.com/mcp"
