@@ -282,14 +282,111 @@ const ANNOTATIONS = {
   delete_container:{ readOnlyHint: false, destructiveHint: true, openWorldHint: true },
 };
 
-// Tools with their annotations merged in, as the MCP tools/list response wants them.
+// --- Output schemas (structured results) --------------------------------------
+// A curated, NON-SECRET view of a container. Credentials (DB URL, S3 keys, SSH
+// key) are deliberately excluded from structuredContent; they remain in the text
+// content for the owner. additionalProperties:false keeps the structured payload
+// to exactly these fields.
+const CONTAINER_SCHEMA = {
+  type: "object",
+  description: "A BasicDeploy container (non-secret fields).",
+  properties: {
+    id: { type: "string", description: "Container UUID." },
+    subdomain: { type: "string", description: "Container subdomain." },
+    url: { type: "string", description: "Public HTTPS URL." },
+    status: { type: "string", description: "Lifecycle status, e.g. running or sleeping." },
+    memoryBytes: { type: "integer", description: "Memory limit in bytes." },
+    storageBytes: { type: "integer", description: "Storage used in bytes." },
+    createdAt: { type: "string", description: "Creation time (ISO 8601)." },
+  },
+  required: ["id", "subdomain", "status", "url"],
+  additionalProperties: false,
+};
+
+const OUTPUT_SCHEMAS = {
+  list_containers: {
+    type: "object",
+    properties: {
+      count: { type: "integer", description: "Number of containers." },
+      containers: { type: "array", items: CONTAINER_SCHEMA },
+    },
+    required: ["containers"],
+    additionalProperties: false,
+  },
+  create_container: CONTAINER_SCHEMA,
+  get_container: CONTAINER_SCHEMA,
+  set_always_on: CONTAINER_SCHEMA,
+  wake_container: CONTAINER_SCHEMA,
+  sleep_container: CONTAINER_SCHEMA,
+  get_account: { type: "object", description: "Account plan, limits and add-ons.", additionalProperties: true },
+  get_logs: {
+    type: "object",
+    properties: { logs: { type: "string", description: "Recent log output." } },
+    required: ["logs"],
+    additionalProperties: false,
+  },
+  exec_command: {
+    type: "object",
+    properties: {
+      exitCode: { type: "integer", description: "Process exit code." },
+      output: { type: "string", description: "Combined stdout/stderr." },
+    },
+    additionalProperties: true,
+  },
+  deploy_app: {
+    type: "object",
+    properties: {
+      containerId: { type: "string", description: "Target container UUID." },
+      message: { type: "string" },
+    },
+    required: ["containerId"],
+    additionalProperties: true,
+  },
+  share_container: {
+    type: "object",
+    properties: { message: { type: "string" } },
+    additionalProperties: true,
+  },
+  delete_container: {
+    type: "object",
+    properties: { deleted: { type: "boolean" }, message: { type: "string" } },
+    required: ["deleted"],
+    additionalProperties: false,
+  },
+  get_docs: {
+    type: "object",
+    properties: { markdown: { type: "string", description: "Documentation in Markdown." } },
+    required: ["markdown"],
+    additionalProperties: false,
+  },
+};
+
+// Tools with their annotations + output schemas merged in, as tools/list wants them.
 const TOOLS_ANNOTATED = TOOLS.map((t) => ({
   ...t,
   annotations: { title: t.name, ...(ANNOTATIONS[t.name] || {}) },
+  ...(OUTPUT_SCHEMAS[t.name] ? { outputSchema: OUTPUT_SCHEMAS[t.name] } : {}),
 }));
 
 function text(t) {
   return { content: [{ type: "text", text: t }] };
+}
+
+// A result carrying BOTH the human text and the structured payload. The spec
+// asks for the serialized JSON in a text block too (back-compat), so we append it.
+function withData(t, data) {
+  const content = [{ type: "text", text: t }];
+  return { content, structuredContent: data };
+}
+
+// Curated non-secret container fields for structuredContent.
+function containerData(c) {
+  if (!c) return undefined;
+  const d = { id: c.id, subdomain: c.subdomain, url: containerUrl(c), status: c.status };
+  if (c.memoryBytes != null) d.memoryBytes = c.memoryBytes;
+  if (c.storageBytes != null) d.storageBytes = c.storageBytes;
+  if (c.createdAt != null) d.createdAt = c.createdAt;
+  return d;
 }
 
 function errorResult(err) {
@@ -304,40 +401,44 @@ async function handleTool(name, args = {}) {
     case "list_containers": {
       const containers = await api.listContainers();
       if (!containers || containers.length === 0) {
-        return text("No containers found.");
+        return withData("No containers found.", { count: 0, containers: [] });
       }
       const lines = containers.map(
         (c) =>
           `- ${c.subdomain} [${c.status}] ${containerUrl(c)} (id: ${c.id}, created: ${c.createdAt})`
       );
-      return text(`${containers.length} container(s):\n${lines.join("\n")}`);
+      return withData(`${containers.length} container(s):\n${lines.join("\n")}`, {
+        count: containers.length,
+        containers: containers.map(containerData),
+      });
     }
 
     case "create_container": {
       const memoryBytes = args.memoryMb != null ? Math.round(args.memoryMb) * 1024 * 1024 : undefined;
       const c = await api.createContainer(memoryBytes, args.alwaysOn);
-      return text(
+      return withData(
         `Created container (database and S3 bucket provisioned automatically).\n` +
           containerSummary(c) +
           `\n\nDeploy note: the public URL is routed to PORT 8080 inside the container — your app MUST ` +
           `listen on 0.0.0.0:8080 or the URL returns 503. DATABASE_URL and S3_ENDPOINT/S3_ACCESS_KEY/` +
-          `S3_SECRET_KEY/S3_BUCKET are preset in the container env. Call get_docs for the full guide.`
+          `S3_SECRET_KEY/S3_BUCKET are preset in the container env. Call get_docs for the full guide.`,
+        containerData(c)
       );
     }
 
     case "set_always_on": {
       const c = await api.setAlwaysOn(args.containerId, args.enabled);
-      return text(`always-on ${args.enabled ? "enabled" : "disabled"} for ${c.subdomain}.\n${containerSummary(c)}`);
+      return withData(`always-on ${args.enabled ? "enabled" : "disabled"} for ${c.subdomain}.\n${containerSummary(c)}`, containerData(c));
     }
 
     case "wake_container": {
       const c = await api.wakeContainer(args.containerId);
-      return text(`Woke ${c.subdomain} (status: ${c.status}).\n${containerSummary(c)}`);
+      return withData(`Woke ${c.subdomain} (status: ${c.status}).\n${containerSummary(c)}`, containerData(c));
     }
 
     case "sleep_container": {
       const c = await api.sleepContainer(args.containerId);
-      return text(`Slept ${c.subdomain} (status: ${c.status}).\n${containerSummary(c)}`);
+      return withData(`Slept ${c.subdomain} (status: ${c.status}).\n${containerSummary(c)}`, containerData(c));
     }
 
     case "get_account": {
@@ -347,26 +448,28 @@ async function handleTool(name, args = {}) {
         ? p.memorySizes.map((b) => `${Math.round(b / (1024 * 1024))}MB`).join(", ")
         : "n/a";
       const limit = p.effectiveMaxContainers ?? p.maxContainers;
-      return text(
+      return withData(
         `Account plan: ${p.displayName || p.name || "Free"}\n` +
           `  container limit: ${limit} (plan base ${p.maxContainers}, always-on add-ons ${me.containerAddons ?? 0})\n` +
           `  selectable memory sizes: ${sizes}\n` +
           `  storage limit: ${p.maxStorageBytes != null ? Math.round(p.maxStorageBytes / (1024 * 1024 * 1024)) + "GB" : "n/a"} per container\n` +
           `  custom domains: ${p.maxCustomDomains ?? 0}\n` +
-          `  auto-sleep: ${p.autoSleep ? "yes (containers sleep when idle unless always-on)" : "no (always-on)"}`
+          `  auto-sleep: ${p.autoSleep ? "yes (containers sleep when idle unless always-on)" : "no (always-on)"}`,
+        me
       );
     }
 
     case "get_container": {
       const c = await api.getContainer(args.containerId);
-      return text(
+      return withData(
         containerSummary(c) +
           `\n  hostPort:  ${c.hostPort}` +
           `\n  sshPort:   ${c.sshPort}` +
           `\n  database:  ${c.dbName} (user: ${c.dbUsername})` +
           `\n  s3Bucket:  ${c.s3Bucket}` +
           `\n  volume:    ${c.volumePath}` +
-          `\n  lastAccessed: ${c.lastAccessed}`
+          `\n  lastAccessed: ${c.lastAccessed}`,
+        containerData(c)
       );
     }
 
@@ -374,14 +477,19 @@ async function handleTool(name, args = {}) {
       const result = await api.execCommand(args.containerId, args.command);
       const status = result.exitCode === 0 ? "succeeded" : `failed (exit code ${result.exitCode})`;
       const output = result.output?.trim() ? result.output : "(no output)";
-      return text(`Command ${status}.\nExit code: ${result.exitCode}\nOutput:\n${output}`);
+      return withData(`Command ${status}.\nExit code: ${result.exitCode}\nOutput:\n${output}`, {
+        exitCode: result.exitCode,
+        output: result.output ?? "",
+      });
     }
 
     case "get_logs": {
       const tail = args.tail ?? 200;
       const result = await api.getLogs(args.containerId, tail);
       const logs = result.logs?.trim() ? result.logs : "(no log output)";
-      return text(`Last ${tail} log lines for container ${args.containerId}:\n${logs}`);
+      return withData(`Last ${tail} log lines for container ${args.containerId}:\n${logs}`, {
+        logs: result.logs ?? "",
+      });
     }
 
     case "deploy_app": {
@@ -406,7 +514,7 @@ async function handleTool(name, args = {}) {
       } catch {
         // container details may not be readable yet while deployment is in progress
       }
-      return text(summary);
+      return withData(summary, { containerId: targetId, message: result.message || "Deployment started." });
     }
 
     case "share_container": {
@@ -414,15 +522,15 @@ async function handleTool(name, args = {}) {
       const expiryNote = args.expiresInHours
         ? ` (expires in ${args.expiresInHours}h)`
         : "";
-      return text(
-        result?.message || `Shared container ${args.containerId} with ${args.email}${expiryNote}.`
-      );
+      const msg = result?.message || `Shared container ${args.containerId} with ${args.email}${expiryNote}.`;
+      return withData(msg, { message: msg });
     }
 
     case "delete_container": {
       await api.deleteContainer(args.containerId);
-      return text(
-        `Container ${args.containerId} permanently deleted (container, database, and files destroyed).`
+      return withData(
+        `Container ${args.containerId} permanently deleted (container, database, and files destroyed).`,
+        { deleted: true, message: `Container ${args.containerId} permanently deleted.` }
       );
     }
 
@@ -446,7 +554,8 @@ async function handleTool(name, args = {}) {
       const parts = [];
       if (docs) parts.push(docs);
       if (llms && !topic) parts.push(`\n\n---\n# Connector / LLM quick reference (llms.txt)\n\n${llms}`);
-      return text(parts.join("\n"));
+      const md = parts.join("\n");
+      return withData(md, { markdown: md });
     }
 
     default:
