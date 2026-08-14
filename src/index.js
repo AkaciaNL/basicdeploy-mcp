@@ -13,6 +13,7 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import * as api from "./client.js";
+import { recordToolCall } from "./usage.js";
 
 function containerUrl(container) {
   return container?.subdomain ? `https://${container.subdomain}.basicdeploy.com` : "(no subdomain)";
@@ -576,6 +577,7 @@ export function createServer() {
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
+    recordToolCall(name); // fire-and-forget analytics; never throws
     try {
       return await handleTool(name, args);
     } catch (err) {
