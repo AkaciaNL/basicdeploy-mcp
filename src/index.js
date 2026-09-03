@@ -259,6 +259,60 @@ const TOOLS = [
       additionalProperties: false,
     },
   },
+  {
+    name: "get_kafka",
+    description:
+      "Get the user's Kafka connection details and topics. BasicDeploy gives every account a Kafka " +
+      "broker (SASL/SCRAM, SCRAM-SHA-256) shared by all their containers. Returns the internal bootstrap " +
+      "(preset as KAFKA_BOOTSTRAP inside containers), the external bootstrap (for outside clients), the " +
+      "SASL username/password, the mandatory consumer-group id prefix (group ids MUST start with it), the " +
+      "current topics, usage and the plan limits. Provisions the tenancy on first call.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+  },
+  {
+    name: "create_topic",
+    description:
+      "Create a Kafka topic for the user. The name is auto-namespaced under their prefix; an optional " +
+      "'label' becomes a readable suffix (sanitized), otherwise it's randomized. Retention, partitions and " +
+      "the per-topic size are fixed by the plan. Fails if the topic count or storage budget is exceeded " +
+      "(see get_kafka / get_account). Returns the full topic name.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        label: { type: "string", description: "Optional readable suffix, [a-z0-9-], max 40 chars." },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "purge_topic",
+    description:
+      "Purge (empty) one of the user's Kafka topics — deletes all its messages but KEEPS the topic. Use " +
+      "this to restart processing after a mistake: purge, then have consumers read from the start again. " +
+      "The topic name must be one the user owns (starts with their prefix).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Full topic name to purge (e.g. u-<hex>.orders)." },
+      },
+      required: ["name"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "delete_topic",
+    description:
+      "PERMANENTLY delete one of the user's Kafka topics (the topic and all its messages). Cannot be " +
+      "undone. Only call when the user clearly asked to remove the topic. The name must be one they own.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Full topic name to delete (e.g. u-<hex>.orders)." },
+      },
+      required: ["name"],
+      additionalProperties: false,
+    },
+  },
 ];
 
 // MCP tool annotations (behaviour hints). Required for the OpenAI/ChatGPT Apps
@@ -557,6 +611,41 @@ async function handleTool(name, args = {}) {
       if (llms && !topic) parts.push(`\n\n---\n# Connector / LLM quick reference (llms.txt)\n\n${llms}`);
       const md = parts.join("\n");
       return withData(md, { markdown: md });
+    }
+
+    case "get_kafka": {
+      const k = await api.getKafka();
+      if (!k.enabled) {
+        return withData("Kafka is not available on this deployment.", k);
+      }
+      const topics = (k.topics || []).map((t) => `  ${t.name} (${t.partitions}p)`).join("\n") || "  (none yet)";
+      const gb = (b) => (b == null ? "n/a" : (b / (1024 * 1024 * 1024)).toFixed(2) + "GB");
+      return withData(
+        `Kafka (SASL/SCRAM, SCRAM-SHA-256)\n` +
+          `  in-container bootstrap: ${k.bootstrap}   (preset as KAFKA_BOOTSTRAP in containers)\n` +
+          `  external bootstrap:     ${k.externalBootstrap}   (outside clients)\n` +
+          `  username: ${k.username}\n` +
+          `  password: ${k.password}\n` +
+          `  consumer-group ids MUST start with: ${k.groupPrefix}\n` +
+          `  topics ${(k.topics || []).length}/${k.limits.maxTopics}, storage ${gb(k.usedBytes)}/${gb(k.limits.maxStorageBytes)}, retention ${Math.round(k.limits.retentionMs / 86400000)}d\n` +
+          `topics:\n${topics}`,
+        k
+      );
+    }
+
+    case "create_topic": {
+      const r = await api.createTopic(args.label);
+      return withData(`Created Kafka topic: ${r.name}`, r);
+    }
+
+    case "purge_topic": {
+      await api.purgeTopic(args.name);
+      return withData(`Purged Kafka topic ${args.name} (topic kept, messages deleted).`, { name: args.name, purged: true });
+    }
+
+    case "delete_topic": {
+      await api.deleteTopic(args.name);
+      return withData(`Deleted Kafka topic ${args.name}.`, { name: args.name, deleted: true });
     }
 
     default:

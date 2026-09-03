@@ -189,3 +189,26 @@ export function deployApp(fileBuffer, filename, containerId) {
   if (containerId) form.append("containerId", containerId);
   return request("/api/deploy", { method: "POST", body: form });
 }
+
+/** Kafka connection info + topics + limits (GET /api/kafka/info). */
+export function getKafka() {
+  return request("/api/kafka/info");
+}
+
+/** Create a Kafka topic (POST /api/kafka/topics). Optional label -> suffix. Returns { name }. */
+export function createTopic(label) {
+  return request("/api/kafka/topics", {
+    method: "POST",
+    body: label ? { label } : {},
+  });
+}
+
+/** Purge (empty) a Kafka topic you own (POST /api/kafka/topics/purge). */
+export function purgeTopic(name) {
+  return request("/api/kafka/topics/purge", { method: "POST", body: { name } });
+}
+
+/** Delete a Kafka topic you own (DELETE /api/kafka/topics). */
+export function deleteTopic(name) {
+  return request("/api/kafka/topics", { method: "DELETE", body: { name } });
+}
