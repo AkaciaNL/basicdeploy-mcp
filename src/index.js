@@ -426,6 +426,80 @@ const OUTPUT_SCHEMAS = {
     required: ["markdown"],
     additionalProperties: false,
   },
+  whoami: {
+    type: "object",
+    properties: {
+      id: { type: "string", description: "The account's UUID." },
+      email: { type: "string", description: "The account's email." },
+      plan: { type: "string", description: "The account's plan name." },
+    },
+    required: ["email"],
+    additionalProperties: true,
+  },
+  get_kafka: {
+    type: "object",
+    properties: {
+      enabled: { type: "boolean", description: "Whether Kafka is available on this deployment." },
+      bootstrap: { type: "string", description: "In-container bootstrap (preset as KAFKA_BOOTSTRAP)." },
+      externalBootstrap: { type: "string", description: "Public bootstrap for outside clients." },
+      username: { type: "string", description: "SASL/SCRAM username." },
+      password: { type: "string", description: "SASL/SCRAM password." },
+      groupPrefix: { type: "string", description: "Required prefix for topic and consumer-group ids." },
+      saslMechanism: { type: "string" },
+      securityProtocol: { type: "string" },
+      usedBytes: { type: "integer", description: "Reserved storage used across topics." },
+      topics: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            partitions: { type: "integer" },
+            retentionMs: { type: "integer" },
+            reservedBytes: { type: "integer" },
+          },
+          additionalProperties: true,
+        },
+      },
+      limits: {
+        type: "object",
+        properties: {
+          maxStorageBytes: { type: "integer" },
+          retentionMs: { type: "integer" },
+          maxTopics: { type: "integer" },
+          maxPartitionsPerTopic: { type: "integer" },
+          throughputBytesPerSec: { type: "integer" },
+        },
+        additionalProperties: true,
+      },
+    },
+    required: ["enabled"],
+    additionalProperties: true,
+  },
+  create_topic: {
+    type: "object",
+    properties: { name: { type: "string", description: "The full topic name created." } },
+    required: ["name"],
+    additionalProperties: false,
+  },
+  purge_topic: {
+    type: "object",
+    properties: {
+      name: { type: "string" },
+      purged: { type: "boolean" },
+    },
+    required: ["purged"],
+    additionalProperties: false,
+  },
+  delete_topic: {
+    type: "object",
+    properties: {
+      name: { type: "string" },
+      deleted: { type: "boolean" },
+    },
+    required: ["deleted"],
+    additionalProperties: false,
+  },
 };
 
 // Tools with their annotations + output schemas merged in, as tools/list wants them.
