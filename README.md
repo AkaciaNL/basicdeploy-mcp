@@ -2,9 +2,9 @@
 
 # BasicDeploy MCP Server
 
-**The persistent runtime your agent deploys to — a database, object storage, and a public URL, one MCP call.**
+**The persistent runtime your agent deploys to: a database, object storage, a Kafka broker, and a public URL, one MCP call.**
 
-An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that lets AI coding agents — Claude Code, Cursor, and any MCP client — create and manage [BasicDeploy](https://basicdeploy.com) containers directly. Every container comes with a PostgreSQL database, S3‑compatible object storage, environment variables, and a public HTTPS URL, all provisioned automatically. Your agent can create containers, deploy apps (Node, Python, Go, or Docker — auto‑detected), run commands, read logs, set always‑on, and share or delete containers.
+An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that lets AI coding agents (Claude Code, Cursor, and any MCP client) create and manage [BasicDeploy](https://basicdeploy.com) containers directly. Every container comes with a PostgreSQL database, S3‑compatible object storage, a Kafka broker, environment variables, and a public HTTPS URL, all provisioned automatically. Your agent can create containers, deploy apps (Node, Python, Go, or Docker, auto‑detected), run commands, read logs, manage Kafka topics, check who it is authenticated as, set always‑on, and share or delete containers.
 
 - 🌐 Site: https://basicdeploy.com
 - 📦 npm: https://www.npmjs.com/package/basicdeploy-mcp
@@ -12,7 +12,7 @@ An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that l
 
 ## Quick start
 
-Requires Node.js ≥ 18. No install needed — `npx` fetches it on demand.
+Requires Node.js ≥ 18. No install needed. `npx` fetches it on demand.
 
 Get an API key at **https://basicdeploy.com/api-keys** (it looks like `bd_…`, shown once), then add this to your MCP client:
 
@@ -78,7 +78,7 @@ env = { BASICDEPLOY_API_KEY = "bd_your_api_key", BASICDEPLOY_URL = "https://basi
 
 | Tool | Arguments | Description |
 |---|---|---|
-| `list_containers` | — | List your containers: subdomain, status, URL, id, createdAt. |
+| `list_containers` | (none) | List your containers: subdomain, status, URL, id, createdAt. |
 | `create_container` | `memoryMb?` (256/512/1024/2048), `alwaysOn?` | Create a container. Database + S3 bucket provisioned automatically. Larger sizes need Pro/Scale; always‑on on Free uses a paid add‑on slot. |
 | `get_container` | `containerId` | Full details: URL, status, ports, DB name/user, S3 bucket, volume path. |
 | `deploy_app` | `tarballPath`, `containerId?` | Deploy a `.tar`/`.tar.gz`/`.tgz`/`.zip` from disk. Unpacks to `/workspace`, auto‑detects the runtime, and starts the app on `:8080`. Omit `containerId` to create a new container; pass one to deploy into an existing container. |
@@ -87,22 +87,22 @@ env = { BASICDEPLOY_API_KEY = "bd_your_api_key", BASICDEPLOY_URL = "https://basi
 | `set_always_on` | `containerId`, `enabled` | Turn a container's 24/7 always‑on flag on/off. |
 | `wake_container` | `containerId` | Wake a slept container so it serves traffic again. |
 | `sleep_container` | `containerId` | Sleep a running container to free memory (wakes on next request). |
-| `get_account` | — | Your plan, container limit (plan + add‑ons), selectable memory sizes, storage limit, and add‑ons. |
+| `get_account` | (none) | Your plan, container limit (plan + add‑ons), selectable memory sizes, storage limit, and add‑ons. |
 | `share_container` | `containerId`, `email`, `expiresInHours?` | Share a container with another user by email (they get a sign‑in link). Omit `expiresInHours` for an unlimited share. |
-| `delete_container` | `containerId` | **Permanent** — destroys the container, its database, and all files. |
-| `whoami` | — | The account this connection is authenticated as (email + id). |
-| `get_kafka` | — | Kafka connection details (SASL/SCRAM): internal + external bootstrap, username/password, consumer‑group prefix, topics, usage and limits. Provisions on first call. |
+| `delete_container` | `containerId` | **Permanent**: destroys the container, its database, and all files. |
+| `whoami` | (none) | The account this connection is authenticated as (email + id). |
+| `get_kafka` | (none) | Kafka connection details (SASL/SCRAM): internal + external bootstrap, username/password, consumer‑group prefix, topics, usage and limits. Provisions on first call. |
 | `create_topic` | `label?` | Create a Kafka topic (auto‑namespaced under your prefix; optional readable label). Fails if the topic/storage budget is exceeded. |
-| `purge_topic` | `name` | Empty a topic you own (deletes its messages, keeps the topic) — restart processing after a mistake. |
-| `delete_topic` | `name` | **Permanent** — delete a topic you own and all its messages. |
+| `purge_topic` | `name` | Empty a topic you own (deletes its messages, keeps the topic). Restart processing after a mistake. |
+| `delete_topic` | `name` | **Permanent**: delete a topic you own and all its messages. |
 
 ## Runtime
 
-Deployed apps must listen on `0.0.0.0:8080` — that's the port the public URL serves. `DATABASE_URL` and `S3_ENDPOINT` / `S3_ACCESS_KEY` / `S3_SECRET_KEY` / `S3_BUCKET` are preset in the container environment. Startup output goes to `/workspace/deploy.log`.
+Deployed apps must listen on `0.0.0.0:8080`, the port the public URL serves. `DATABASE_URL`, `S3_ENDPOINT` / `S3_ACCESS_KEY` / `S3_SECRET_KEY` / `S3_BUCKET`, and `KAFKA_BOOTSTRAP` / `KAFKA_USERNAME` / `KAFKA_PASSWORD` / `KAFKA_GROUP_PREFIX` are preset in the container environment. Startup output goes to `/workspace/deploy.log`.
 
 ## Example prompts
 
-- "Create a 1GB always‑on container and deploy `./dist/app.tar.gz` to it — give me the URL."
+- "Create a 1GB always‑on container and deploy `./dist/app.tar.gz` to it, give me the URL."
 - "Show the last 100 log lines of my `blue-fox` container."
 - "What plan am I on and how many containers can I run?"
 - "Share my container with teammate@example.com for 24 hours."

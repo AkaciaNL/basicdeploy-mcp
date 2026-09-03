@@ -2,7 +2,7 @@
   "name": "basicdeploy-mcp",
   "displayName": "BasicDeploy",
   "version": "1.0.7",
-  "description": "Deploy and manage BasicDeploy containers from your agent — Postgres, S3-compatible storage, env vars, and a public HTTPS URL, all in one MCP call.",
+  "description": "Deploy and manage BasicDeploy containers from your agent. Postgres, S3-compatible storage, a Kafka broker, env vars, and a public HTTPS URL, all in one MCP call.",
   "author": {
     "name": "Akacia",
     "url": "https://basicdeploy.com"
