@@ -260,6 +260,13 @@ const TOOLS = [
     },
   },
   {
+    name: "whoami",
+    description:
+      "Return the identity of the BasicDeploy account this connection is authenticated as — the user's " +
+      "email and account id. Use it to confirm WHICH user is logged in before acting on their behalf.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+  },
+  {
     name: "get_kafka",
     description:
       "Get the user's Kafka connection details and topics. BasicDeploy gives every account a Kafka " +
@@ -335,6 +342,11 @@ const ANNOTATIONS = {
   share_container: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
   exec_command:    { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
   delete_container:{ readOnlyHint: false, destructiveHint: true, openWorldHint: true },
+  whoami:          { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+  get_kafka:       { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+  create_topic:    { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+  purge_topic:     { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
+  delete_topic:    { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
 };
 
 // --- Output schemas (structured results) --------------------------------------
@@ -611,6 +623,14 @@ async function handleTool(name, args = {}) {
       if (llms && !topic) parts.push(`\n\n---\n# Connector / LLM quick reference (llms.txt)\n\n${llms}`);
       const md = parts.join("\n");
       return withData(md, { markdown: md });
+    }
+
+    case "whoami": {
+      const me = await api.getAccount();
+      return withData(
+        `Logged in as ${me.email || "(unknown)"} (account id ${me.id || "?"}).`,
+        { id: me.id, email: me.email, plan: me.plan?.displayName || me.plan?.name },
+      );
     }
 
     case "get_kafka": {
