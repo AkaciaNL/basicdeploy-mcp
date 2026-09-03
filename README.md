@@ -90,6 +90,11 @@ env = { BASICDEPLOY_API_KEY = "bd_your_api_key", BASICDEPLOY_URL = "https://basi
 | `get_account` | — | Your plan, container limit (plan + add‑ons), selectable memory sizes, storage limit, and add‑ons. |
 | `share_container` | `containerId`, `email`, `expiresInHours?` | Share a container with another user by email (they get a sign‑in link). Omit `expiresInHours` for an unlimited share. |
 | `delete_container` | `containerId` | **Permanent** — destroys the container, its database, and all files. |
+| `whoami` | — | The account this connection is authenticated as (email + id). |
+| `get_kafka` | — | Kafka connection details (SASL/SCRAM): internal + external bootstrap, username/password, consumer‑group prefix, topics, usage and limits. Provisions on first call. |
+| `create_topic` | `label?` | Create a Kafka topic (auto‑namespaced under your prefix; optional readable label). Fails if the topic/storage budget is exceeded. |
+| `purge_topic` | `name` | Empty a topic you own (deletes its messages, keeps the topic) — restart processing after a mistake. |
+| `delete_topic` | `name` | **Permanent** — delete a topic you own and all its messages. |
 
 ## Runtime
 
