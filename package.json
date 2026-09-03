@@ -1,6 +1,6 @@
 {
   "name": "basicdeploy-mcp",
-  "version": "1.2.1",
+  "version": "2.0.1",
   "description": "MCP server for BasicDeploy - lets AI coding agents deploy and manage containers",
   "type": "module",
   "mcpName": "io.github.AkaciaNL/basicdeploy-mcp",
